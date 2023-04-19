@@ -34,6 +34,7 @@ __pycache__/
 *.log
 *.sql
 *.sqlite
+*.Rhistory
 
 # OS generated files #
 ######################
@@ -48,6 +49,7 @@ Thumbs.db
 
 # DATA FILES 
 *.csv
+*.json
 
 # Microsoft Office Files #
 *.tmp
