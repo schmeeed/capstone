@@ -1,0 +1,69 @@
+﻿GA_LISTINGS_SALES.csv - Old version and not used
+
+
+GA_LISTINGS_SALES_V2.csv -  'latitude', 'longitude', 'full_street_address', 'city', 'county_name', 'beds', 'baths_full', 'baths_half', 'square_footage', 'lot_size', 'year_built', 'details', 'special_features', 'unit_count', 'price', 'transaction_type', 'listing_status', 'listing_special_features','census_state_name', 'census_county_name', 'zip'
+
+
+atlanta_listings.csv - 
+* created from GA_LISTINGS_SALES_V2 
+* removed Land sales
+* removed all observations outside of Atlanta area
+
+
+atlanta_cbsa_zip.csv - 'census_cbsa_geoid', 'census_cbsa_name', 'census_cbsa_lsad',
+       'census_cbsa_lat', 'census_cbsa_lon', 'census_zcta5_geoid',
+       'census_zcta5_lat', 'census_zcta5_lon'
+
+
+core_geo_dataset.csv - 'census_zcta5_geoid', 'census_zcta5_lat', 'census_zcta5_lon',
+       'census_tract_geoid', 'census_tract_lat', 'census_tract_lon'
+
+
+crime_rating_zipcode.csv - 'census_state_abbr', 'census_zcta5_geoid','census_cbsa_geoid_count',
+       'census_cbsa_geoid_list', 'overall_crime_grade', 'violent_crime_grade',
+       'violent_crime_total_rate', 'violent_crime_assault_rate',
+       'violent_crime_robbery_rate', 'violent_crime_rape_rate',
+       'violent_crime_murder_rate', 'property_crime_grade',
+       'property_crime_total_rate', 'property_crime_theft_rate',
+       'property_crime_vehicle_theft_rate', 'property_crime_burglary_rate',
+       'property_crime_arson_rate', 'other_crime_grade',
+       'other_crime_total_rate', 'other_crime_kidnapping_rate',
+       'other_crime_drug_crimes_rate', 'other_crime_vandalism_rate',
+       'other_crime_identity_theft_rate', 'other_crime_animal_cruelty_rate',
+       'crime_safety_paragraph', 'interpreting_crime_map_paragraph'
+
+
+elementary_schools.csv - 'id', 'districtID', 'districtName', 'districtCity', 'lat', 'long',
+       'name', 'gradeLevels', 'address', 'rating', 'ratingScale', 'schoolType',
+       'zipcode', 'studentsPerTeacher', 'parentRating'
+
+
+high_schools.csv - 'id', 'districtID', 'districtName', 'districtCity', 'lat', 'long',
+       'name', 'gradeLevels', 'address', 'rating', 'ratingScale', 'schoolType',
+       'zipcode', 'studentsPerTeacher', 'parentRating'
+
+
+middle_schools.csv - 'id', 'districtID', 'districtName', 'districtCity', 'lat', 'long',
+       'name', 'gradeLevels', 'address', 'rating', 'ratingScale', 'schoolType',
+       'zipcode', 'studentsPerTeacher', 'parentRating'
+
+
+all_zips_grocery_store.json - 
+* removed all observations outside of Atlanta
+* Used to create points-of-interest-haystacks.csv
+* all_zips_restaurant.json -
+* removed all observations outside of Atlanta
+* Used to create points-of-interest-haystacks.csv
+* 
+
+points-of-interest-haystacks.csv - 'business_status', 'name', 'photos', 'place_id', 'price_level',
+       'rating', 'types', 'user_ratings_total', 'vicinity',
+       'geometry.location.lat', 'geometry.location.lng',
+       'geometry.viewport.northeast.lat', 'geometry.viewport.northeast.lng',
+       'geometry.viewport.southwest.lat', 'geometry.viewport.southwest.lng',
+       'opening_hours.open_now', 'plus_code.compound_code',
+       'plus_code.global_code', 'permanently_closed', 'census_zcta_geoid'
+
+
+points-of-interest-google.csv - 'place_id', 'name', 'rating', 'user_ratings_total', 'latitude',
+       'longitude', 'poi_type', 'zip_code'
