@@ -67,3 +67,7 @@ points-of-interest-haystacks.csv - 'business_status', 'name', 'photos', 'place_i
 
 points-of-interest-google.csv - 'place_id', 'name', 'rating', 'user_ratings_total', 'latitude',
        'longitude', 'poi_type', 'zip_code'
+       
+points-of-interest-google2.csv - 'name', 'address', 'gmap_id', 'description', 'latitude', 'longitude',
+       'category', 'avg_rating', 'num_of_reviews', 'price', 'hours', 'MISC',
+       'state', 'relative_results', 'url', 'zip_code', 'primary_category'
