@@ -71,3 +71,16 @@ points-of-interest-google.csv - 'place_id', 'name', 'rating', 'user_ratings_tota
 points-of-interest-google2.csv - 'name', 'address', 'gmap_id', 'description', 'latitude', 'longitude',
        'category', 'avg_rating', 'num_of_reviews', 'price', 'hours', 'MISC',
        'state', 'relative_results', 'url', 'zip_code', 'primary_category'
+       
+atlanta_hdma_2021.csv - Dataset includes filtered data where each row represents a zip code with no missing values and the following columns:
+       'zip_code', 'average_loan_amount_home_improvement_approved',
+       'average_loan_amount_home_improvement_denied',
+       'average_loan_amount_home_purchase_approved',
+       'average_loan_amount_home_purchase_denied',
+       'loan_count_home_improvement_approved',
+       'loan_count_home_improvement_denied',
+       'loan_count_home_purchase_approved', 'loan_count_home_purchase_denied',
+       'total_loan_count', 'total_approved_loans', 'total_denied_loans',
+       'approval_percentage', 'zip_median_income', 'population',
+       'zip_owner_occupied_units', 'total_one_to_four_family_homes',
+       'median_age_of_housing_units'
