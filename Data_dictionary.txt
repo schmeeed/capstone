@@ -1,4 +1,16 @@
-﻿GA_LISTINGS_SALES.csv - Old version and not used
+****CLEANED .csv's for use****
+
+points-of-interest-haystacks.csv
+points-of-interest-google2.csv
+schools.csv
+atlanta_hdma_2021.csv
+atlanta_listings.csv
+crime.csv
+
+****RAW .csv's****
+
+
+GA_LISTINGS_SALES.csv - Old version and not used
 
 
 GA_LISTINGS_SALES_V2.csv -  'latitude', 'longitude', 'full_street_address', 'city', 'county_name', 'beds', 'baths_full', 'baths_half', 'square_footage', 'lot_size', 'year_built', 'details', 'special_features', 'unit_count', 'price', 'transaction_type', 'listing_status', 'listing_special_features','census_state_name', 'census_county_name', 'zip'
