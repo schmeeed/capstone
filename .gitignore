@@ -50,6 +50,7 @@ Thumbs.db
 # DATA FILES 
 *.csv
 *.json
+*.pkl
 
 # Microsoft Office Files #
 *.tmp
