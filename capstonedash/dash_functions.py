@@ -16,12 +16,14 @@ def find_closest_poi(listing_address, poi_dataframe, poi_categories):
         dict: A dictionary containing the details (latitude, longitude, name, address, distance) of the closest POI for all selected categories.
 
     Example:
-        import pandas as pd
-        poi_data = pd.read_csv('poi_data.csv')
-        specified_address = "123 Main Street, Atlanta, Georgia"
-        poi_categories = ["school", "hospital", "restaurant"]
-        closest_poi = find_closest_poi(specified_address, poi_data, poi_categories)
-        print("Closest POI for selected categories:", closest_poi)
+         find_closest_poi(listing_address='412 8th St NE, Atlanta, GA 30309', 
+                         poi_dataframe=POI,
+                         poi_categories=['school', 'primary_school','secondary_school']) 
+        {'latitude': 33.77561779999999,
+         'longitude': -84.39628499999999,
+         'name': 'Georgia Institute of Technology',
+         'address': 'North Ave NW, Atlanta',
+         'distance_miles': 1.33}
     """
     geolocator = Nominatim(user_agent="my_geocoder")  # Instantiate the geocoder
     location = geolocator.geocode(listing_address)  # Geocode the specified address

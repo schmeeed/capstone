@@ -10,6 +10,7 @@ import json
 import requests
 from plotly.graph_objs import Scattermapbox, Layout, Figure
 import plotly.express as px
+import dash_functions # my custom functions
 
 mapbox_access_token = "Public_API"
 
