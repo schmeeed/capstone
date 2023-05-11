@@ -10,7 +10,8 @@ import json
 import requests
 from plotly.graph_objs import Scattermapbox, Layout, Figure
 import plotly.express as px
-import dash_functions # my custom functions
+from dash_functions import find_closest_poi # my custom functions
+import plotly.graph_objects as go
 
 mapbox_access_token = "Public_API"
 
@@ -30,6 +31,9 @@ zipcodes = json.loads(file_obj3["Body"].read().decode("utf-8"))
 
 file_obj4 = s3.get_object(Bucket=bucket_name, Key="atlanta_hdma_2021.csv")
 df = pd.read_csv(file_obj4["Body"])
+
+file_obj5 = s3.get_object(Bucket=bucket_name, Key="poi_combined_haystack_ALL_CLEANED.csv")
+POI = pd.read_csv(file_obj5["Body"])
 
 # Extracting unique zip codes
 unique_zip_codes = sorted(df["zip_code"].unique())
@@ -102,7 +106,7 @@ def update_map(selected_column):
 
 def get_addresses(query):
     # Replace YOUR_API_KEY with your actual Mapbox API key
-    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{query}.json?access_token=MAPBOX_SECRET"
+    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{query}.json?access_token=pk.eyJ1Ijoic2NobWVlZWQiLCJhIjoiY2xoMmd4dzlkMDJvYTNkcGhjN3g4YWY3aSJ9.XmDvHtt1PnWiZYIXpclq8g"
     response = requests.get(url)
     data = json.loads(response.text)
     center = data["features"][0]["center"]
@@ -133,7 +137,7 @@ def update_address_map(selected_address):
 
 
     # Replace YOUR_API_KEY with your actual Mapbox API key
-    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{selected_address}.json?access_token=MAPBOX_SECRET"
+    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{selected_address}.json?access_token=pk.eyJ1Ijoic2NobWVlZWQiLCJhIjoiY2xoMmd4dzlkMDJvYTNkcGhjN3g4YWY3aSJ9.XmDvHtt1PnWiZYIXpclq8g"
     response = requests.get(url)
     data = response.json()
 
@@ -146,6 +150,26 @@ def update_address_map(selected_address):
     }
 
     return fig
+@app.callback(
+    Output("school_indicator", "figure"),
+    [Input("address_search_box", "value")]
+)
+def school_indicator(user_address):
+    cats = ['school', 'primary_School', 'secondary_school']
+    closest_school = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+
+    fig = go.Figure(go.Indicator(
+        mode="number",
+        value=closest_school['distance_miles'],
+        number={'suffix': " mi"},
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': 'Distance to Nearest School'}))
+
+    fig.update_layout(paper_bgcolor="lightgray")
+
+    return fig
+
+
 
 
 app.layout = html.Div([
@@ -177,7 +201,8 @@ app.layout = html.Div([
                     debounce=True
                 ),
                 dcc.Graph(id="address_map")
-            ])
+            ]),
+            html.Div([dcc.Graph(id='school_indicator')])
         ])
 
     ]),
