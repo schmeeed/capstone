@@ -6,15 +6,17 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import pandas as pd
 import boto3
+from botocore.exceptions import ClientError
 import json
 import requests
 from plotly.graph_objs import Scattermapbox, Layout, Figure
 import plotly.express as px
-from dash_functions import find_closest_poi # my custom functions
+import dash_functions
 import plotly.graph_objects as go
 
-mapbox_access_token = "Public_API"
-
+mapbox_api = dash_functions.get_secret('mapbox')
+mapbox_data = json.loads(mapbox_api)
+access_token = mapbox_data['mapbox_secret']
 
 # Fetching data
 s3 = boto3.client("s3")
@@ -106,7 +108,7 @@ def update_map(selected_column):
 
 def get_addresses(query):
     # Replace YOUR_API_KEY with your actual Mapbox API key
-    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{query}.json?access_token=pk.eyJ1Ijoic2NobWVlZWQiLCJhIjoiY2xoMmd4dzlkMDJvYTNkcGhjN3g4YWY3aSJ9.XmDvHtt1PnWiZYIXpclq8g"
+    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{query}.json?access_token={access_token}"
     response = requests.get(url)
     data = json.loads(response.text)
     center = data["features"][0]["center"]
@@ -137,7 +139,7 @@ def update_address_map(selected_address):
 
 
     # Replace YOUR_API_KEY with your actual Mapbox API key
-    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{selected_address}.json?access_token=pk.eyJ1Ijoic2NobWVlZWQiLCJhIjoiY2xoMmd4dzlkMDJvYTNkcGhjN3g4YWY3aSJ9.XmDvHtt1PnWiZYIXpclq8g"
+    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{selected_address}.json?access_token={access_token}"
     response = requests.get(url)
     data = response.json()
 
@@ -156,14 +158,14 @@ def update_address_map(selected_address):
 )
 def school_indicator(user_address):
     cats = ['school', 'primary_School', 'secondary_school']
-    closest_school = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+    closest_school = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
 
     fig = go.Figure(go.Indicator(
         mode="number",
         value=closest_school['distance_miles'],
         number={'suffix': " mi"},
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': f"Distance to Nearest School<br><span style='font-size:0.8em;color:gray'>{closest_school['name']}</span>"}))
+        title={'text': f"School<br><span style='font-size:0.8em;color:gray'>{closest_school['name']}</span>"}))
 
     fig.update_layout(paper_bgcolor="lightgray")
 
@@ -175,14 +177,14 @@ def school_indicator(user_address):
 )
 def worship_indicator(user_address):
     cats = ['hindu_temple', 'place_of_worship', 'church']
-    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
 
     fig = go.Figure(go.Indicator(
         mode="number",
         value=closest['distance_miles'],
         number={'suffix': " mi"},
         domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Distance to Nearest Place of Worship<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+        title = {'text': f"Place of Worship<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
 
     fig.update_layout(paper_bgcolor="lightgray")
 
@@ -194,14 +196,14 @@ def worship_indicator(user_address):
 )
 def grocery_indicator(user_address):
     cats = ['convenience_store', 'grocery_or_supermarket', 'supermarket']
-    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
 
     fig = go.Figure(go.Indicator(
         mode="number",
         value=closest['distance_miles'],
         number={'suffix': " mi"},
         domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Distance to Nearest Grocery<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+        title = {'text': f"Grocery<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
 
     fig.update_layout(paper_bgcolor="lightgray")
 
@@ -213,14 +215,14 @@ def grocery_indicator(user_address):
 )
 def restaurant_indicator(user_address):
     cats = ['restaurant', 'meal_takeaway']
-    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
 
     fig = go.Figure(go.Indicator(
         mode="number",
         value=closest['distance_miles'],
         number={'suffix': " mi"},
         domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Distance to Nearest Restaurant<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+        title = {'text': f"Restaurant<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
 
     fig.update_layout(paper_bgcolor="lightgray")
 
@@ -232,14 +234,14 @@ def restaurant_indicator(user_address):
 )
 def airport_indicator(user_address):
     cats = ['airport']
-    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
 
     fig = go.Figure(go.Indicator(
         mode="number",
         value=closest['distance_miles'],
         number={'suffix': " mi"},
         domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Distance to Nearest Airport<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+        title = {'text': f"Airport<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
 
     fig.update_layout(paper_bgcolor="lightgray")
 
@@ -256,7 +258,6 @@ app.layout = html.Div([
                 value="approval_percentage",
                 placeholder="Select a Column"
             ),
-
             dcc.Dropdown(
                 id="zip_code_dropdown",
                 options=[{"label": str(zip_code), "value": zip_code} for zip_code in unique_zip_codes],
@@ -267,14 +268,29 @@ app.layout = html.Div([
             dcc.Graph(id="map", figure=update_map("approval_percentage"))  # Call update_map() to set the initial map figure
         ]),
         dcc.Tab(label='Address Search', value='tab-2', children=[
-            dbc.Row(
+            html.Div(
                 [
-                    dbc.Col(html.Div(dcc.Graph(id='school_indicator'))),
-                    dbc.Col(html.Div(dcc.Graph(id='worship_indicator'))),
-                    dbc.Col(html.Div(dcc.Graph(id='restaurant_indicator'))),
-                    dbc.Col(html.Div(dcc.Graph(id='grocery_indicator'))),
-                    dbc.Col(html.Div(dcc.Graph(id='airport_indicator')))
-                ]
+                    html.Div(dcc.Graph(id='school_indicator',
+                                       config={'staticPlot': True},
+                                       figure={'layout': {'width': 200, 'height': 200}})),
+                    html.Div(dcc.Graph(id='worship_indicator',
+                                       config={'staticPlot': True},
+                                       figure={'layout': {'width': 200, 'height': 200}})),
+                    html.Div(dcc.Graph(id='restaurant_indicator',
+                                       config={'staticPlot': True},
+                                       figure={'layout': {'width': 200, 'height': 200}})),
+                    html.Div(dcc.Graph(id='grocery_indicator',
+                                       config={'staticPlot': True},
+                                       figure={'layout': {'width': 200, 'height': 200}})),
+                    html.Div(dcc.Graph(id='airport_indicator',
+                                       config={'staticPlot': True},
+                                       figure={'layout': {'width': 200, 'height': 200}}))
+                ],
+                style={
+                    'display': 'flex',
+                    "gap": "20px",
+                    "align-items": "flex-end"
+                }
             ),
             dbc.Row(
                 [
@@ -286,8 +302,19 @@ app.layout = html.Div([
                 ]
             )
         ])
+             ])
     ])
-])
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)

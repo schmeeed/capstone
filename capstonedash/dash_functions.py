@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
+import boto3
+from botocore.exceptions import ClientError
+import json
 
 def find_closest_poi(listing_address, poi_dataframe, poi_categories):
     """
@@ -25,7 +28,7 @@ def find_closest_poi(listing_address, poi_dataframe, poi_categories):
          'address': 'North Ave NW, Atlanta',
          'distance_miles': 1.33}
     """
-    geolocator = Nominatim(user_agent="my_geocoder")  # Instantiate the geocoder
+    geolocator = Nominatim(user_agent="my_geocoder", timeout=10)  # Instantiate the geocoder
     location = geolocator.geocode(listing_address)  # Geocode the specified address
 
     listing_coordinates = (location.latitude, location.longitude)  # Get the listing coordinates
@@ -52,3 +55,28 @@ def find_closest_poi(listing_address, poi_dataframe, poi_categories):
                     }
 
     return closest_poi
+
+
+# MAPBOX Key Function
+
+def get_secret(secret_name):
+    region_name = "us-east-1"
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        # Handle the exception appropriately for your application
+        raise e
+    # Parse and return the secret values
+    secret = get_secret_value_response['SecretString']
+    return secret
+mapbox_api = get_secret('mapbox')
+mapbox_data = json.loads(mapbox_api)
+access_token = mapbox_data['mapbox_secret']
