@@ -163,13 +163,87 @@ def school_indicator(user_address):
         value=closest_school['distance_miles'],
         number={'suffix': " mi"},
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': 'Distance to Nearest School'}))
+        title={'text': f"Distance to Nearest School<br><span style='font-size:0.8em;color:gray'>{closest_school['name']}</span>"}))
 
     fig.update_layout(paper_bgcolor="lightgray")
 
     return fig
 
+@app.callback(
+    Output("worship_indicator", "figure"),
+    [Input("address_search_box", "value")]
+)
+def worship_indicator(user_address):
+    cats = ['hindu_temple', 'place_of_worship', 'church']
+    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
 
+    fig = go.Figure(go.Indicator(
+        mode="number",
+        value=closest['distance_miles'],
+        number={'suffix': " mi"},
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title = {'text': f"Distance to Nearest Place of Worship<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+
+    fig.update_layout(paper_bgcolor="lightgray")
+
+    return fig
+
+@app.callback(
+    Output("grocery_indicator", "figure"),
+    [Input("address_search_box", "value")]
+)
+def grocery_indicator(user_address):
+    cats = ['convenience_store', 'grocery_or_supermarket', 'supermarket']
+    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+
+    fig = go.Figure(go.Indicator(
+        mode="number",
+        value=closest['distance_miles'],
+        number={'suffix': " mi"},
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title = {'text': f"Distance to Nearest Grocery<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+
+    fig.update_layout(paper_bgcolor="lightgray")
+
+    return fig
+
+@app.callback(
+    Output("restaurant_indicator", "figure"),
+    [Input("address_search_box", "value")]
+)
+def restaurant_indicator(user_address):
+    cats = ['restaurant', 'meal_takeaway']
+    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+
+    fig = go.Figure(go.Indicator(
+        mode="number",
+        value=closest['distance_miles'],
+        number={'suffix': " mi"},
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title = {'text': f"Distance to Nearest Restaurant<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+
+    fig.update_layout(paper_bgcolor="lightgray")
+
+    return fig
+
+@app.callback(
+    Output("airport_indicator", "figure"),
+    [Input("address_search_box", "value")]
+)
+def airport_indicator(user_address):
+    cats = ['airport']
+    closest = find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+
+    fig = go.Figure(go.Indicator(
+        mode="number",
+        value=closest['distance_miles'],
+        number={'suffix': " mi"},
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title = {'text': f"Distance to Nearest Airport<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+
+    fig.update_layout(paper_bgcolor="lightgray")
+
+    return fig
 
 
 app.layout = html.Div([
@@ -193,27 +267,30 @@ app.layout = html.Div([
             dcc.Graph(id="map", figure=update_map("approval_percentage"))  # Call update_map() to set the initial map figure
         ]),
         dcc.Tab(label='Address Search', value='tab-2', children=[
-            html.Div([
-                dcc.Input(
-                    id="address_search_box",
-                    type="text",
-                    placeholder="Enter an address",
-                    debounce=True
-                ),
-                dcc.Graph(id="address_map")
-            ]),
-            html.Div([dcc.Graph(id='school_indicator')])
+            dbc.Row(
+                [
+                    dbc.Col(html.Div(dcc.Graph(id='school_indicator'))),
+                    dbc.Col(html.Div(dcc.Graph(id='worship_indicator'))),
+                    dbc.Col(html.Div(dcc.Graph(id='restaurant_indicator'))),
+                    dbc.Col(html.Div(dcc.Graph(id='grocery_indicator'))),
+                    dbc.Col(html.Div(dcc.Graph(id='airport_indicator')))
+                ]
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(html.Div([dcc.Input(id="address_search_box",
+                                                type="text",
+                                                placeholder="Enter an address",
+                                                debounce=True),
+                                      dcc.Graph(id="address_map")]), width=12),
+                ]
+            )
         ])
-
-    ]),
+    ])
 ])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
-
-
-
-
 
 
 # app.layout = html.Div([
