@@ -13,6 +13,9 @@ from plotly.graph_objs import Scattermapbox, Layout, Figure
 import plotly.express as px
 import dash_functions
 import plotly.graph_objects as go
+import dash_leaflet as dl
+
+
 
 mapbox_api = dash_functions.get_secret('mapbox')
 mapbox_data = json.loads(mapbox_api)
@@ -22,11 +25,6 @@ access_token = mapbox_data['mapbox_secret']
 s3 = boto3.client("s3")
 bucket_name = "capstonehaystacks"
 
-# file_obj1 = s3.get_object(Bucket=bucket_name, Key="jason_listing.csv")
-# listings = pd.read_csv(file_obj1["Body"])
-#
-# file_obj2 = s3.get_object(Bucket=bucket_name, Key="points-of-interest-google2.csv")
-# poi = pd.read_csv(file_obj2["Body"])
 
 file_obj3 = s3.get_object(Bucket=bucket_name, Key="zipcodes_111meter.min.json")
 zipcodes = json.loads(file_obj3["Body"].read().decode("utf-8"))
@@ -43,6 +41,18 @@ unique_zip_codes = sorted(df["zip_code"].unique())
 # Creating the app
 app = dash.Dash(__name__)
 
+column_names_mapping = {
+    'average_loan_amount_home_improvement_approved': 'Avg. Loan Amount (Home Improvement)',
+    'average_loan_amount_home_purchase_approved': 'Avg. Loan Amount (Home Purchase)',
+    'total_loan_count': 'Total Loan Count',
+    'total_approved_loans': 'Total Approved Loans',
+    'total_denied_loans': 'Total Denied Loans',
+    'approval_percentage': 'Approval Percentage',
+    'zip_median_income': 'Median Income',
+    'median_age_of_housing_units': 'Median Age of Housing',
+}
+
+filtered_columns = [col for col in df.columns if col in column_names_mapping]
 
 @app.callback(
     Output("output_boxes", "children"),
@@ -56,18 +66,21 @@ def update_output(selected_zip_code, selected_column):
     display_values = data[selected_column]
 
     columns_to_display = [
-        "loan_count_home_purchase_approved",
-        "loan_count_home_purchase_denied",
-        "total_loan_count",
-        "total_approved_loans",
-        "total_denied_loans",
+        'average_loan_amount_home_improvement_approved',
+        'average_loan_amount_home_purchase_approved',
+        'total_loan_count',
+        'total_approved_loans',
+        'total_denied_loans',
+        'approval_percentage',
+        'zip_median_income',
+        'median_age_of_housing_units',
         selected_column,
     ]
 
     return [
         html.Div(
             [
-                html.H4(column),
+                html.H4(column_names_mapping[column]),
                 html.P(data.iloc[0][column])
             ],
             className="box",
@@ -75,15 +88,13 @@ def update_output(selected_zip_code, selected_column):
         ) for column in columns_to_display
     ]
 
+
 @app.callback(
     Output("map", "figure"),
     [Input("data_dropdown", "value")]
 )
-
 def update_map(selected_column):
-    # calculate the center of the zipcodes
-    lat_center = 33.751900
-    lon_center = -84.414314
+    # ...
 
     fig = px.choropleth(
         df,
@@ -92,16 +103,17 @@ def update_map(selected_column):
         color=selected_column,
         color_continuous_scale="Viridis",
         featureidkey="properties.ZCTA5CE10",
-        labels={selected_column: selected_column},
+        labels={selected_column: column_names_mapping[selected_column]},
         projection='albers usa',
         scope="usa",
-        center={"lat": lat_center, "lon": lon_center}, # set the center of the map
-        fitbounds="geojson",  # set the initial zoom level
+        center={"lat": 33.751900, "lon": -84.414314},
+        fitbounds="geojson",
     )
 
-    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0},
-                      mapbox_style="carto-positron"
-                      )
+    fig.update_layout(
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        mapbox_style="carto-positron"
+    )
 
     return fig
 
@@ -250,23 +262,38 @@ def airport_indicator(user_address):
 
 app.layout = html.Div([
     dcc.Tabs(id='tabs', value='tab-1', children=[
-        dcc.Tab(label='Zipcode Map', value='tab-1', children=[
-            html.H1("Zip Code Analytics"),
-            dcc.Dropdown(
-                id="data_dropdown",
-                options=[{"label": col, "value": col} for col in df.columns],
-                value="approval_percentage",
-                placeholder="Select a Column"
-            ),
-            dcc.Dropdown(
-                id="zip_code_dropdown",
-                options=[{"label": str(zip_code), "value": zip_code} for zip_code in unique_zip_codes],
-                value=30004,
-                placeholder="Select a Zip Code"
-            ),
-            html.Div(id="output_boxes"),
-            dcc.Graph(id="map", figure=update_map("approval_percentage"))  # Call update_map() to set the initial map figure
+        dcc.Tabs(id='tabs-container', value='tab-1', children=[
+            dcc.Tab(label='Zipcode Map', value='tab-1', children=[
+                html.H1("Zip Code Analytics"),
+                html.Div([
+                    dcc.Dropdown(
+                        id="data_dropdown",
+                        options=[{"label": column_names_mapping[col], "value": col} for col in filtered_columns],
+                        value="approval_percentage",
+                        placeholder="Select a Column"
+                    )
+                ], style={'width': '50%', 'margin': 'auto'}),
+
+                html.Div([
+                    dcc.Graph(id="map", figure=update_map("approval_percentage"),
+                              style={'height': '600px', 'width': '100%'})
+                    # Call update_map() to set the initial map figure
+                ], style={'width': '100%', 'margin': 'auto', 'display': 'flex', 'justify-content': 'center'}),
+
+                html.Div([
+                    dcc.Dropdown(
+                        id="zip_code_dropdown",
+                        options=[{"label": str(zip_code), "value": zip_code} for zip_code in unique_zip_codes],
+                        value=30004,
+                        placeholder="Select a Zip Code"
+                    )
+                ], style={'width': '50%', 'margin': 'auto'}),
+
+                html.Div(id="output_boxes"),
+            ])
         ]),
+
+
         dcc.Tab(label='Address Search', value='tab-2', children=[
             html.Div(
                 [
@@ -304,16 +331,6 @@ app.layout = html.Div([
         ])
              ])
     ])
-
-
-
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
