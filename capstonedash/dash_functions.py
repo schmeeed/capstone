@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
-
 import boto3
 from botocore.exceptions import ClientError
 import json
