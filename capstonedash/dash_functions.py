@@ -155,10 +155,16 @@ def sim_zip(zipcode, df, columns, POI_df, k=6, mode=1):
     # Filter df by sim zips
     my_sim_zips = df[df['zipcode'].isin(similar_zip_codes)]
 
+
     if mode == 1:
-        return my_sim_zips
+        filtered_sim_zips = my_sim_zips[my_sim_zips.columns[:41]]  # filtering out poi column
+        selected_columns = filtered_sim_zips.columns.intersection(columns)
+        remaining_columns = filtered_sim_zips.columns.difference(columns)
+        reordered_columns = ['zipcode'] + list(selected_columns) + list(
+            remaining_columns.difference(['zipcode']))  # reording the columns with 'zipcode' followed by selected
+        return filtered_sim_zips[reordered_columns]
     elif mode == 2:
-        return my_sim_zips
+        return [zipcode] + list(my_sim_zips['zipcode'])
     elif mode == 3:
         return POI_df[POI_df['zipcode'].isin(similar_zip_codes)].groupby(by='name').size().sort_values(ascending=False)[:5]  
     elif mode == 4:
