@@ -1,23 +1,15 @@
-
 import dash
 from dash import html
 from dash import dcc
+from dash import dash_table
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import pandas as pd
 import boto3
-from botocore.exceptions import ClientError
 import json
-import requests
-from plotly.graph_objs import Scattermapbox, Layout, Figure
 import plotly.express as px
 import dash_functions
 import plotly.graph_objects as go
-import dash_leaflet as dl
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-
-
 
 mapbox_api = dash_functions.get_secret('mapbox')
 mapbox_data = json.loads(mapbox_api)
@@ -26,7 +18,6 @@ access_token = mapbox_data['mapbox_secret']
 # Fetching data
 s3 = boto3.client("s3")
 bucket_name = "capstonehaystacks"
-
 
 file_obj3 = s3.get_object(Bucket=bucket_name, Key="zipcodes_111meter.min.json")
 zipcodes = json.loads(file_obj3["Body"].read().decode("utf-8"))
@@ -37,15 +28,17 @@ census_all = pd.read_csv(file_obj4["Body"])
 file_obj5 = s3.get_object(Bucket=bucket_name, Key="poi_combined_haystack_ALL_CLEANED.csv")
 POI = pd.read_csv(file_obj5["Body"])
 
-file_obj5 = s3.get_object(Bucket=bucket_name, Key="POI_second_tab.csv")
-poi_with_census = pd.read_csv(file_obj5["Body"])
+file_obj6 = s3.get_object(Bucket=bucket_name, Key="POI_second_tab.csv")
+poi_with_census = pd.read_csv(file_obj6["Body"])
+
+file_obj6 = s3.get_object(Bucket=bucket_name, Key="census_all_perCapita.csv")
+census_capita = pd.read_csv(file_obj6["Body"])
 # Extracting unique zip codes
 unique_zip_codes = sorted(poi_with_census["zipcode"].unique())
 
 # Creating the app
 # app = dash.Dash(__name__)
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, dbc.icons.BOOTSTRAP])
-
 
 column_names_mapping = {
     'average_loan_amount_home_improvement_approved': 'Avg. Loan Amount (Home Improvement)',
@@ -59,7 +52,7 @@ column_names_mapping = {
 }
 column_dropdown_name_or_cat = {
     'name': 'Points of Interest',
-    'primary_category': 'POI Categories'
+    'primary_category': 'Categories'
 }
 
 column_dropdown_features = {
@@ -109,6 +102,14 @@ column_dropdown_features = {
 filtered_columns = [col for col in census_all.columns if col in column_dropdown_features]
 
 
+def format_value(column_selected, value):
+    if column_selected in ["median_rental_value", "median_homeowner_value"]:
+        return f"${value:,.0f}"
+    else:
+        return f"{value * 1:,.1f}%"
+
+
+
 @app.callback(
     Output("map", "figure"),
     [Input("data_dropdown", "value")]
@@ -128,6 +129,13 @@ def update_map_and_zipcodes(selected_column):
         fitbounds="geojson",
     )
 
+    # fig.update_layout(
+    #     title_text="Atlanta Metro Area",
+    #     title_font_size=24,
+    #     title_font_family="Arial",
+    #     margin={"r": 0, "t": 0, "l": 0, "b": 0},
+    #     mapbox_style="carto-positron"
+    # )
     fig.update_layout(
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
         mapbox_style="carto-positron"
@@ -135,7 +143,7 @@ def update_map_and_zipcodes(selected_column):
     return fig
 
 
-global_selected_column = None  # Define the global_selected_column as a global variable
+global_selected_column = None  # defining global_selected_column as a global variable
 
 card_top = dbc.Card(
     dbc.CardBody(
@@ -144,7 +152,7 @@ card_top = dbc.Card(
             dbc.ListGroup([], id="top_zipcode_list_group", flush=True),
         ],
         className="border-start border-success border-5 p-3",
-        style={"background-color": "#c3e6cb"}  # Set the background color to green
+        style={"background-color": "#c3e6cb"}  # green
     ),
     className="text-center m-4",
 )
@@ -153,13 +161,169 @@ card_bottom = dbc.Card(
     dbc.CardBody(
         [
             html.H4("", id="bottom_zipcode_card_title", className="card-title text-start"),
-            dbc.ListGroup([], id="bottom_zipcode_list_group", flush=True),
+            dbc.ListGroup([], id="bottom_zipcode_list_group", style={"background-color": "#f5c6cb"}),
         ],
-        className="border-start border-danger border-5 p-3",  # Set the border color to red
-        style={"background-color": "#f5c6cb"}  # Set the background color to red
+        className="border-start border-danger border-5 p-3",  # border color to red
+        style={"background-color": "#f5c6cb"}  # background color to red
     ),
     className="text-center m-4",
 )
+
+checklist1 = html.Div(
+    [
+        html.Label("Select Individual Categories:", style={"font-weight": "bold"}),
+        dcc.Checklist(
+            id='checkboxes1',
+            options=[
+                {'label': value, 'value': key}
+                for key, value in column_dropdown_features.items()
+            ],
+            value=[],
+            labelStyle={'display': 'block'},
+        )
+    ],
+    className="m-4 border border-success",
+    style={'columnCount': 3}
+)
+
+switch_all_categories = html.Div(
+    [
+        dbc.Label(""),
+        dbc.Checklist(
+            options=[
+                {"label": "Select all Categories", "value": 1},
+            ],
+            value=[1],
+            id="switch-all",
+            inline=True,
+            switch=True,
+        ),
+    ]
+)
+
+zip_dropdown = html.Div(
+    [
+        dbc.Label("Select Preferred Zip Code"),
+        dcc.Dropdown(
+            id="zip1",
+            options=[
+                {"label": str(zip_code), "value": zip_code}
+                for zip_code in unique_zip_codes
+            ],
+            value=30004,
+            placeholder="Select a Zip Code",
+            clearable=False,
+        ),
+    ],
+    className="mb-4",
+)
+
+knn_slider = html.Div(
+    [
+        html.Label("Select Number of Similar Zip Codes to View"),
+        dcc.Slider(min=6, max=20, step=1, value=6, id="knn-slider"),
+        dcc.Store(id='knn_slider')
+    ]
+)
+
+update_button = html.Div(
+    [
+        dbc.Button('Update Results', id='update-button', n_clicks=0)
+    ],
+    className="d-grid gap-2",
+)
+
+
+@app.callback(
+    Output('checkboxes1', 'value'),
+    Input('switch-all', 'value')
+)
+def update_checklist(selected_switch):
+    if selected_switch == [1]:  # if switch is on
+        # return all the keys as the value of the checklist
+        return list(column_dropdown_features.keys())
+    else:  # if switch is off
+        # return an empty list to deselect all checkmarks
+        return []
+
+knn_table = dash_table.DataTable(
+    id="knn_table",
+    data=dash_functions.sim_zip(zipcode=30002, df=census_capita, columns=['travel_less_10', 'percent_25_39',
+                                                                          'percent_100k_150k', 'rental_vacancy_rate'],
+                                POI_df=POI, k=10, mode=1).to_dict('records'),
+    page_size=25,
+    style_table={"overflowX": "scroll"},
+    style_data_conditional=[]
+)
+
+
+@app.callback(
+    Output('knn_table', 'data'),
+    Output('knn_table', 'style_data_conditional'),
+    Input('update-button', 'n_clicks'),  # added button as input
+    State('checkboxes1', 'value'),
+    State('zip1', 'value'),
+    State('knn-slider', 'value')
+)
+def update_table(n_clicks, selected_features, selected_zip, k):
+    # If the button hasn't been clicked, don't update the table
+    if n_clicks == 0:
+        raise dash.exceptions.PreventUpdate
+
+    # If the button has been clicked, compute the new data and update the table
+    new_data = dash_functions.sim_zip(zipcode=selected_zip, df=census_capita, columns=selected_features, POI_df=POI,
+                                      k=k, mode=1).to_dict('records')
+
+    style_data_conditional = [
+        {
+            'if': {'column_id': c},
+            'backgroundColor': 'lightyellow',
+        } for c in selected_features
+    ]
+
+    return new_data, style_data_conditional
+
+
+
+@app.callback(
+    Output("map2", "figure"),
+    Input('update-button', 'n_clicks'),  # added button as input
+    State('checkboxes1', 'value'),
+    State('zip1', 'value'),
+    State('knn-slider', 'value')
+)
+def update_map_with_zipcodes(n_clicks, selected_features, selected_zip, k):
+    # If the button hasn't been clicked, don't update the table
+    if n_clicks == 0:
+        raise dash.exceptions.PreventUpdate
+    # using mode 2 for list of zipc odes
+    zipcode_list = dash_functions.sim_zip(zipcode=selected_zip, df=census_capita, columns=selected_features, POI_df=POI,
+                                          k=k, mode=2)
+
+    # new column to differentiate the selected zip code and the other zip codes
+    census_all['color'] = census_all['zipcode'].apply(
+        lambda x: 'Selected' if x == zipcode_list[0] else ('Similar' if x in zipcode_list else 'Other'))
+
+    fig = px.choropleth(
+        census_all,
+        geojson=zipcodes,
+        locations="zipcode",
+        color="color",
+        color_discrete_map={'Selected': '#0000FF', 'Similar': '#00FFFF', 'Other': '#F0F8FF'},
+        featureidkey="properties.ZCTA5CE10",
+        labels={"color": "Zip Code Type"},
+        projection='albers usa',
+        scope="usa",
+        center={"lat": 33.751900, "lon": -84.414314},
+        fitbounds="geojson",
+    )
+
+    fig.update_layout(
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        mapbox_style="carto-positron"
+    )
+    return fig
+
 
 @app.callback(
     [Output("top_zipcode_list_group", "children"),
@@ -169,24 +333,24 @@ card_bottom = dbc.Card(
     [Input("data_dropdown", "value")]
 )
 def update_cards(selected_column):
-    global global_selected_column  # Access the global_selected_column variable
-
-    # Get the top 3 zip codes with highest values for selected_column as a dictionary
+    global global_selected_column
+    # top 3 zip codes with highest values for selected_column as a dictionary
     top_zipcodes_dict = census_all.nlargest(3, selected_column).set_index("zipcode")[selected_column].to_dict()
-    # Get the bottom 3 zip codes with lowest values for selected_column as a dictionary
+    # bottom 3 zip codes with lowest values for selected_column as a dictionary
     bottom_zipcodes_dict = census_all.nsmallest(3, selected_column).set_index("zipcode")[selected_column].to_dict()
-
     top_zipcode_items = [
         dbc.ListGroupItem(
             [
                 dbc.Row(
                     [
                         dbc.Col(html.H5(f"{zipcode}", className="mb-0 font-weight-bold"), width=6),
-                        dbc.Col(html.P(f"{value * 1:.0f}%", className="mb-0 font-weight-bold text-end"), width=6),
+                        dbc.Col(
+                            html.P(format_value(selected_column, value), className="mb-0 font-weight-bold text-end"),
+                            width=6),
                     ]
                 )
             ],
-            className="text-start"
+            className="text-start", color="success"
         )
         for zipcode, value in top_zipcodes_dict.items()
     ]
@@ -197,67 +361,22 @@ def update_cards(selected_column):
                 dbc.Row(
                     [
                         dbc.Col(html.H5(f"{zipcode}", className="mb-0 font-weight-bold"), width=6),
-                        dbc.Col(html.P(f"{value * 1:.0f}%", className="mb-0 font-weight-bold text-end"), width=6),
+                        dbc.Col(
+                            html.P(format_value(selected_column, value), className="mb-0 font-weight-bold text-end"),
+                            width=6),
                     ]
                 )
             ],
-            className="text-start"
+            className="text-start", color="danger"
         )
         for zipcode, value in bottom_zipcodes_dict.items()
     ]
 
-    global_selected_column = column_dropdown_features.get(selected_column)  # Retrieve the value from column_dropdown_features
+    global_selected_column = column_dropdown_features.get(
+        selected_column)  # Retrieve the value from column_dropdown_features
 
     return top_zipcode_items, bottom_zipcode_items, f"{global_selected_column} Top Zipcodes", f"{global_selected_column} Bottom Zipcodes"
 
-
-
-def get_addresses(query):
-    # Replace YOUR_API_KEY with your actual Mapbox API key
-    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{query}.json?access_token={access_token}"
-    response = requests.get(url)
-    data = json.loads(response.text)
-    center = data["features"][0]["center"]
-    return {"lon": center[0], "lat": center[1]}
-
-@app.callback(
-    Output("address_map", "figure"),
-    [Input("address_search_box", "value")]
-)
-def update_address_map(selected_address):
-    if selected_address is None:
-        return {}
-
-    # Use the filtered get_addresses function to get the lat/lon coordinates of the selected address
-    center = get_addresses(selected_address)
-    if center is None:
-        return {}
-
-    lat = center["lat"]
-    lon = center["lon"]
-
-    fig = {
-        "data": [{"type": "scattermapbox", "lat": [lat], "lon": [lon]}],
-        "layout": {"mapbox": {"style": "carto-positron", "center": {"lat": lat, "lon": lon}, "zoom": 12}}
-    }
-
-    return fig
-
-
-    # Replace YOUR_API_KEY with your actual Mapbox API key
-    url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{selected_address}.json?access_token={access_token}"
-    response = requests.get(url)
-    data = response.json()
-
-    lat = data["features"][0]["center"][1]
-    lon = data["features"][0]["center"][0]
-
-    fig = {
-        "data": [{"type": "scattermapbox", "lat": [lat], "lon": [lon]}],
-        "layout": {"mapbox": {"style": "carto-positron", "center": {"lat": lat, "lon": lon}, "zoom": 12}}
-    }
-
-    return fig
 
 @app.callback(
     Output('top-graphic', 'figure'),
@@ -265,19 +384,16 @@ def update_address_map(selected_address):
     Input('column_selected-dropdown', 'value'),
     Input('poi-slider', 'value')
 )
-
 def update_graph_top(name_or_cat, column_selected, poi_slider_value):
     category_counts = poi_with_census[name_or_cat].value_counts()
     valid_categories = category_counts[category_counts >= poi_slider_value]
     valid_merged = poi_with_census[poi_with_census[name_or_cat].isin(valid_categories.index)]
     category_approval = valid_merged.groupby(name_or_cat)[column_selected].mean()
-
+    bottom_categories = category_approval.nsmallest(10)
     top_categories = category_approval.nlargest(10)
-    title = "Top " + column_dropdown_name_or_cat[name_or_cat] + " by " + column_dropdown_features[column_selected]
+    title = "Top 10 " + column_dropdown_name_or_cat[name_or_cat] + " by " + column_dropdown_features[column_selected]
     xaxis_title = column_dropdown_name_or_cat[name_or_cat]
-    yaxis_title = column_dropdown_features[column_selected]
-
-
+    yaxis_title = column_dropdown_features[column_selected] + " for All Locations"
 
     fig = go.Figure(
         data=go.Bar(
@@ -290,6 +406,7 @@ def update_graph_top(name_or_cat, column_selected, poi_slider_value):
     fig.update_layout(
         title=title,
         title_x=0.5,
+        height=900,
         xaxis_title=xaxis_title,
         yaxis_title=yaxis_title,
         yaxis=dict(
@@ -302,16 +419,19 @@ def update_graph_top(name_or_cat, column_selected, poi_slider_value):
             tickprefix=""
             if column_selected not in ["median_rental_value", "median_homeowner_value"]
             else "$",
-            range=[top_categories.min() - 1, top_categories.max() + 1],
+            range = [bottom_categories.min() - 1, top_categories.max() + 1],
         ),
-        # autosize=False,
-        # width=700,
-        # height=550,
+            xaxis=dict(
+                tickfont=dict(size=10),
+                title_standoff=50,
+                tickangle=25,
+            ),
         margin=dict(l=50, r=50, b=100, t=100, pad=4),
         paper_bgcolor="White",
     )
 
     return fig
+
 
 @app.callback(
     Output('bottom-graphic', 'figure'),
@@ -324,17 +444,16 @@ def update_graph_bottom(name_or_cat, column_selected, poi_slider_value):
     valid_categories = category_counts[category_counts >= poi_slider_value]
     valid_merged = poi_with_census[poi_with_census[name_or_cat].isin(valid_categories.index)]
     category_approval = valid_merged.groupby(name_or_cat)[column_selected].mean()
-    bottom_categories = category_approval.nsmallest(10)
-    # top_categories = category_approval.nlargest(10)
-    title = "Bottom " + column_dropdown_name_or_cat[name_or_cat] + " by " + column_dropdown_features[column_selected]
+    bottom_categories = category_approval.nsmallest(10)[::-1]
+    top_categories = category_approval.nlargest(10)
+    title = "Bottom 10 " + column_dropdown_name_or_cat[name_or_cat] + " by " + column_dropdown_features[column_selected]
     xaxis_title = column_dropdown_name_or_cat[name_or_cat]
-    yaxis_title = column_dropdown_features[column_selected]
-
-
+    yaxis_title = column_dropdown_features[column_selected] + " for All Locations"
 
     fig = go.Figure(
         data=go.Bar(
-            x=bottom_categories.index,
+            x=bottom_categories.index[::-1],
+            # x=bottom_categories.index,
             y=bottom_categories,
             marker_color="red",
         )
@@ -343,6 +462,7 @@ def update_graph_bottom(name_or_cat, column_selected, poi_slider_value):
     fig.update_layout(
         title=title,
         title_x=0.5,
+        height = 900,
         xaxis_title=xaxis_title,
         yaxis_title=yaxis_title,
         yaxis=dict(
@@ -355,218 +475,222 @@ def update_graph_bottom(name_or_cat, column_selected, poi_slider_value):
             tickprefix=""
             if column_selected not in ["median_rental_value", "median_homeowner_value"]
             else "$",
-            range=[bottom_categories.min() - 1, bottom_categories.max() + 1],
+            range=[bottom_categories.min() - 1, top_categories.max() + 1],
         ),
-        # autosize=False,
-        # width=700,
-        # height=550,
+            xaxis=dict(
+                tickfont=dict(size=10),
+                title_standoff=50,
+                tickangle=25,
+            ),
         margin=dict(l=50, r=50, b=100, t=100, pad=4),
         paper_bgcolor="White",
     )
 
     return fig
 
-@app.callback(
-    Output("school_indicator", "figure"),
-    [Input("address_search_box", "value")]
+table_header = html.Thead(html.Tr([html.Th("Most Common POI Names in Selected Zip Codes"), html.Th("Count")]))
+
+table_header2 = html.Thead(html.Tr([html.Th("Most Common POI Categories in Selected Zip Codes"), html.Th("Count")]))
+
+table_body = html.Tbody([])  # Initialize empty table body
+table_body2 = html.Tbody([])
+
+
+poi_table = dbc.Table(
+    children=[table_header, table_body],
+    id="table-poi",
+    color="secondary",
 )
-def school_indicator(user_address):
-    cats = ['school', 'primary_School', 'secondary_school']
-    closest_school = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
 
-    fig = go.Figure(go.Indicator(
-        mode="number",
-        value=closest_school['distance_miles'],
-        number={'suffix': " mi"},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': f"School<br><span style='font-size:0.8em;color:gray'>{closest_school['name']}</span>"}))
-
-    fig.update_layout(paper_bgcolor="lightgray")
-
-    return fig
-
-@app.callback(
-    Output("worship_indicator", "figure"),
-    [Input("address_search_box", "value")]
+poi_table2 = dbc.Table(
+    children=[table_header, table_body2],
+    id="table-poi2",
+    color="secondary",
 )
-def worship_indicator(user_address):
-    cats = ['hindu_temple', 'place_of_worship', 'church']
-    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
-
-    fig = go.Figure(go.Indicator(
-        mode="number",
-        value=closest['distance_miles'],
-        number={'suffix': " mi"},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Place of Worship<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
-
-    fig.update_layout(paper_bgcolor="lightgray")
-
-    return fig
 
 @app.callback(
-    Output("grocery_indicator", "figure"),
-    [Input("address_search_box", "value")]
+    Output("table-poi", "children"),
+    Input('update-button', 'n_clicks'),  # added button as input
+    State('checkboxes1', 'value'),
+    State('zip1', 'value'),
+    State('knn-slider', 'value')
 )
-def grocery_indicator(user_address):
-    cats = ['convenience_store', 'grocery_or_supermarket', 'supermarket']
-    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+def update_poi_table(n_clicks, selected_features, selected_zip, k):
+    # If the button hasn't been clicked, don't update the table
+    if n_clicks == 0:
+        raise dash.exceptions.PreventUpdate
 
-    fig = go.Figure(go.Indicator(
-        mode="number",
-        value=closest['distance_miles'],
-        number={'suffix': " mi"},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Grocery<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+    # Call your function to get the poi_name_dict
+    poi_name_dict = dash_functions.sim_zip(zipcode=selected_zip, df=census_capita, columns=selected_features,
+                                           POI_df=poi_with_census, k=k, mode=3)
 
-    fig.update_layout(paper_bgcolor="lightgray")
+    table_rows = []
+    for key, value in poi_name_dict.items():
+        row = html.Tr([html.Td(key), html.Td(str(value))])  # Convert value to string
+        table_rows.append(row)
 
-    return fig
+    table_body.children = table_rows  # updating table body directly
+
+    return [poi_table]  # wrapping the poi_table in a list for the callback return value
 
 @app.callback(
-    Output("restaurant_indicator", "figure"),
-    [Input("address_search_box", "value")]
+    Output("table-poi2", "children"),
+    Input('update-button', 'n_clicks'),  # added button as input
+    State('checkboxes1', 'value'),
+    State('zip1', 'value'),
+    State('knn-slider', 'value')
 )
-def restaurant_indicator(user_address):
-    cats = ['restaurant', 'meal_takeaway']
-    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+def update_poi_table2(n_clicks, selected_features, selected_zip, k):
+    # If the button hasn't been clicked, don't update the table
+    if n_clicks == 0:
+        raise dash.exceptions.PreventUpdate
 
-    fig = go.Figure(go.Indicator(
-        mode="number",
-        value=closest['distance_miles'],
-        number={'suffix': " mi"},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Restaurant<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
+    # Call your function to get the poi_name_dict
+    poi_name_dict = dash_functions.sim_zip(zipcode=selected_zip, df=census_capita, columns=selected_features,
+                                           POI_df=poi_with_census, k=k, mode=4)  # Update poi_name_dict using mode=4
 
-    fig.update_layout(paper_bgcolor="lightgray")
+    table_rows = []
+    for key, value in poi_name_dict.items():
+        row = html.Tr([html.Td(key), html.Td(str(value))])  # Convert value to string
+        table_rows.append(row)
 
-    return fig
+    table_body2.children = table_rows  # Update table body for the second table directly
 
-@app.callback(
-    Output("airport_indicator", "figure"),
-    [Input("address_search_box", "value")]
-)
-def airport_indicator(user_address):
-    cats = ['airport']
-    closest = dash_functions.find_closest_poi(listing_address=user_address, poi_dataframe=POI, poi_categories=cats)
+    return [poi_table2]  # Wrap the poi_table2 in a list for the callback return value
 
-    fig = go.Figure(go.Indicator(
-        mode="number",
-        value=closest['distance_miles'],
-        number={'suffix': " mi"},
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title = {'text': f"Airport<br><span style='font-size:0.8em;color:gray'>{closest['name']}</span>"}))
 
-    fig.update_layout(paper_bgcolor="lightgray")
 
-    return fig
 
 
 app.layout = html.Div([
     dcc.Tabs(id='tabs', value='tab-1', children=[
-         dcc.Tab(label='Zipcode HeatMap', value='tab-1', children=[
-              # html.H1("Zip Code Analytics"),
-              html.Div([
-                 dcc.Dropdown(
-                      id="data_dropdown",
-                    options=[{"label": column_dropdown_features[col], "value": col} for col in filtered_columns],
-                    value="car_commute",
-                     placeholder="Select a Column"
-                  )
-            ], style={'width': '50%', 'margin': 'auto'}),
-
+        dcc.Tab(label='Atlanta Metro Region Heat Map', value='tab-1', children=[
             html.Div([
-                dcc.Graph(id="map", style={'height': '800px', 'width': '100%'})
+                html.Div([
+                    html.Label('Select a Zip Code Feature:'),
+                    dcc.Dropdown(
+                        id="data_dropdown",
+                        options=[{"label": column_dropdown_features[col], "value": col} for col in filtered_columns],
+                        value="car_commute",
+                        placeholder="Select a Column"
+                    )
+                ], style={'margin-top': '0.5in', 'margin-bottom': '0.5in'}),
+                dcc.Loading(
+                    id="loading",
+                    type="dot",  # a value equal to: 'graph', 'cube', 'circle', 'dot' or 'default';
+                    children=[
+                        dcc.Graph(id="map", style={'height': '800px', 'width': '100%'})
+                    ],
+                    style={'width': '100%', 'minHeight': '800px'}
+                ),
 
-                # dcc.Graph(id="map", figure=update_map("car_commute"),
-                #           style={'height': '600px', 'width': '100%'})
-            ], style={'width': '100%', 'margin': 'auto', 'display': 'flex', 'justify-content': 'center'}),
-
-            dbc.Container(
-                 dbc.Row(
+                dbc.Container(
+                    dbc.Row(
                         [dbc.Col(card_top), dbc.Col(card_bottom)],
                     ),
                     fluid=True,
                 )
+            ])
         ]),
-        dcc.Tab(label='Points of Interest', value='tab-2', children=[
-            dcc.Dropdown(
-                    id='name_or_cat-dropdown',
-                    options=[{'label': v, 'value': k} for k, v in column_dropdown_name_or_cat.items()],
-                    value='primary_category'
-                ),
-                dcc.Dropdown(
-                    id='column_selected-dropdown',
-                    options=[{'label': v, 'value': k} for k, v in column_dropdown_features.items()],
-                    value='rent_over_2500'
-                ),
-                html.Div(
-                    id='poi-graph-container',
-                    children=[
-                        dcc.Graph(id='top-graphic', style={'width': '50%', 'height': '50vh'}),
-                        dcc.Graph(id='bottom-graphic', style={'width': '50%', 'height': '50vh'})
-                    ],
-                    style={'display': 'flex', 'justify-content': 'space-between'}
-                ),
-                html.Div([
-                    html.Label('Filter by Minimum Amount of POI Locations in Entire Region:'),
-                    dcc.Slider(
-                        id='poi-slider',
-                        min=50,
-                        max=400,
-                        step=50,
-                        value=50,
-                        # marks=None,
-                        marks={i: str(i) for i in range(50, 401, 50)},
-                        tooltip={"placement": "bottom", "always_visible": True},
-                        className='p-0'
-                    )
-                ]),
-                ]),
-
-
-        dcc.Tab(label='Address Search', value='tab-3', children=[
+        dcc.Tab(label='Points of Interest Demographics', value='tab-2', children=[
+            html.Div([
+                dbc.Row([
+                    dbc.Col([
+                        html.Label('Select POI Name or Category:'),
+                        dcc.Dropdown(
+                            id='name_or_cat-dropdown',
+                            options=[{'label': v, 'value': k} for k, v in column_dropdown_name_or_cat.items()],
+                            value='primary_category'
+                        ),
+                    ], width=4),
+                    dbc.Col([
+                        html.Div([
+                            html.Label('Filter by Minimum Amount of POI Locations in Entire Region:'),
+                            dcc.Slider(
+                                id='poi-slider',
+                                min=10,
+                                max=400,
+                                step=10,
+                                value=10,
+                                marks={i: str(i) for i in range(50, 401, 50)},
+                                tooltip={"placement": "bottom", "always_visible": True},
+                                className='p-0'
+                            )
+                        ], style={'padding': '20px'})  # increased padding to prevent cutoff
+                    ], width=4),
+                    dbc.Col([
+                        html.Label('Select Interested Feature:'),
+                        dcc.Dropdown(
+                            id='column_selected-dropdown',
+                            options=[{'label': v, 'value': k} for k, v in column_dropdown_features.items()],
+                            value='rent_over_2500'
+                        )
+                    ], width=4),
+                ], justify='around'),
+            ], style={'border': '3px solid #d2f0eb', 'padding': '20px', 'margin-top': '0.5in'}),  # increased padding for the outline
 
             html.Div(
-                [
-                    html.Div(dcc.Graph(id='school_indicator',
-                                        config={'staticPlot': True},
-                                        figure={'layout': {'width': 200, 'height': 200}})),
-                    html.Div(dcc.Graph(id='worship_indicator',
-                                        config={'staticPlot': True},
-                                        figure={'layout': {'width': 200, 'height': 200}})),
-                    html.Div(dcc.Graph(id='restaurant_indicator',
-                                        config={'staticPlot': True},
-                                        figure={'layout': {'width': 200, 'height': 200}})),
-                    html.Div(dcc.Graph(id='grocery_indicator',
-                                        config={'staticPlot': True},
-                                        figure={'layout': {'width': 200, 'height': 200}})),
-                    html.Div(dcc.Graph(id='airport_indicator',
-                                        config={'staticPlot': True},
-                                        figure={'layout': {'width': 200, 'height': 200}}))
+                id='poi-graph-container',
+                children=[
+                    dcc.Graph(id='top-graphic', style={'width': '48%', 'height': '1000px'}),
+                    dcc.Graph(id='bottom-graphic', style={'width': '48%', 'height': '1000px'})
                 ],
-                style={
-                    'display': 'flex',
-                    "gap": "20px",
-                    "align-items": "flex-end"
-                }
+                style={'display': 'flex', 'justify-content': 'space-between'}
             ),
-            dbc.Row(
-                [
-                    dbc.Col(html.Div([dcc.Input(id="address_search_box",
-                                                type="text",
-                                                placeholder="Enter an address",
-                                                debounce=True),
-                                        dcc.Graph(id="address_map")]), width=12),
+        ]),
+
+        dcc.Tab(label='Recommendations', value='tab-3', children=[
+            html.Div([
+                dbc.Row([
+                    dbc.Col(zip_dropdown, width=6),
+                    dbc.Col(knn_slider, width=6),
+                ], style={'border': '3px solid 	#d2f0eb', 'padding': '20px','margin-top': '0.5in'}),
+
+                    switch_all_categories,
+                    checklist1,
+                    update_button,
+                    knn_table,
+                    dbc.Container(
+                        dbc.Row(
+                            [
+                                dbc.Col(poi_table, width=4),
+                                dbc.Col(poi_table2, width=4),
+                            ],
+                            justify="around",
+                        ),
+                        fluid=True,
+                        style={"marginTop": "0.2in"},
+                    ),
+                    # dbc.Container(
+                    #     dbc.Row(
+                    #         [dbc.Col(poi_table), dbc.Col(poi_table2)],
+                    #     ),
+                    #     fluid=True,
+                    #     style={"marginTop": "0.2in"}
+                    # ),
+
+                    dcc.Loading(
+                        id="graph-loading",
+                        type="circle",
+                        children=[
+                            dcc.Graph(
+                                id="map2",
+                                style={'height': '1000px', 'width': '100%', 'margin-left': '20px', 'margin-right': '20px'},
+                                config={'displayModeBar': False}
+                            )
+                        ],
+                        style={'width': '100%', 'margin': 'auto', 'display': 'flex', 'justify-content': 'center',
+                               'height': '800px'}
+                    )
+
                 ]
             )
         ])
-                ])
+    ])
 ])
 
 if __name__ == "__main__":
     app.run_server(debug=True)
-
 
 # app.layout = html.Div([
 #     html.H1("Zip Code Analytics"),
@@ -579,7 +703,6 @@ if __name__ == "__main__":
 #     html.Div(id="output_boxes"),
 #     dcc.Graph(id="map", figure=update_map())  # Call update_map() to set the initial map figure
 # ])
-
 
 
 # app.layout = html.Div([
@@ -682,11 +805,6 @@ if __name__ == "__main__":
 #     return {"lon": center[0], "lat": center[1]}
 
 
-
-
-
-
-
 #
 # def update_output(selected_zip_code):
 #     if selected_zip_code is None:
@@ -741,7 +859,6 @@ if __name__ == "__main__":
 # Modify the update_map function to not depend on the input
 
 
-
 # @app.callback(
 #     Output("map", "figure"),
 #     [Input("zip_code_dropdown", "value")]
@@ -792,8 +909,6 @@ if __name__ == "__main__":
 #     return Figure(data=map_data, layout=layout)
 
 
-
-
 # def update_map(selected_zip_code):
 #     center = get_zip_code_center(selected_zip_code)
 #
@@ -820,16 +935,6 @@ if __name__ == "__main__":
 #     )
 #
 #     return Figure(data=[data], layout=layout)
-
-
-
-
-
-
-
-
-
-
 
 
 #
