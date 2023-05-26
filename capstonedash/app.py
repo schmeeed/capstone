@@ -51,8 +51,8 @@ column_names_mapping = {
     'median_age_of_housing_units': 'Median Age of Housing',
 }
 column_dropdown_name_or_cat = {
-    'name': 'Points of Interest by Name',
-    'primary_category': 'Points of Interest by Category'
+    'name': 'Points of Interest',
+    'primary_category': 'Categories'
 }
 
 column_dropdown_features = {
@@ -129,6 +129,13 @@ def update_map_and_zipcodes(selected_column):
         fitbounds="geojson",
     )
 
+    # fig.update_layout(
+    #     title_text="Atlanta Metro Area",
+    #     title_font_size=24,
+    #     title_font_family="Arial",
+    #     margin={"r": 0, "t": 0, "l": 0, "b": 0},
+    #     mapbox_style="carto-positron"
+    # )
     fig.update_layout(
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
         mapbox_style="carto-positron"
@@ -164,7 +171,7 @@ card_bottom = dbc.Card(
 
 checklist1 = html.Div(
     [
-        html.Label("Select Investor Profile:", style={"font-weight": "bold"}),
+        html.Label("Select Individual Categories:", style={"font-weight": "bold"}),
         dcc.Checklist(
             id='checkboxes1',
             options=[
@@ -181,10 +188,10 @@ checklist1 = html.Div(
 
 switch_all_categories = html.Div(
     [
-        dbc.Label("Select all Categories"),
+        dbc.Label(""),
         dbc.Checklist(
             options=[
-                {"label": "", "value": 1},
+                {"label": "Select all Categories", "value": 1},
             ],
             value=[1],
             id="switch-all",
@@ -384,9 +391,9 @@ def update_graph_top(name_or_cat, column_selected, poi_slider_value):
     category_approval = valid_merged.groupby(name_or_cat)[column_selected].mean()
     bottom_categories = category_approval.nsmallest(10)
     top_categories = category_approval.nlargest(10)
-    title = "Top " + column_dropdown_name_or_cat[name_or_cat] + " with " + column_dropdown_features[column_selected]
+    title = "Top 10 " + column_dropdown_name_or_cat[name_or_cat] + " by " + column_dropdown_features[column_selected]
     xaxis_title = column_dropdown_name_or_cat[name_or_cat]
-    yaxis_title = column_dropdown_features[column_selected]
+    yaxis_title = column_dropdown_features[column_selected] + " for All Locations"
 
     fig = go.Figure(
         data=go.Bar(
@@ -399,6 +406,7 @@ def update_graph_top(name_or_cat, column_selected, poi_slider_value):
     fig.update_layout(
         title=title,
         title_x=0.5,
+        height=900,
         xaxis_title=xaxis_title,
         yaxis_title=yaxis_title,
         yaxis=dict(
@@ -415,6 +423,8 @@ def update_graph_top(name_or_cat, column_selected, poi_slider_value):
         ),
             xaxis=dict(
                 tickfont=dict(size=10),
+                title_standoff=50,
+                tickangle=25,
             ),
         margin=dict(l=50, r=50, b=100, t=100, pad=4),
         paper_bgcolor="White",
@@ -436,9 +446,9 @@ def update_graph_bottom(name_or_cat, column_selected, poi_slider_value):
     category_approval = valid_merged.groupby(name_or_cat)[column_selected].mean()
     bottom_categories = category_approval.nsmallest(10)[::-1]
     top_categories = category_approval.nlargest(10)
-    title = "Bottom " + column_dropdown_name_or_cat[name_or_cat] + " with " + column_dropdown_features[column_selected]
+    title = "Bottom 10 " + column_dropdown_name_or_cat[name_or_cat] + " by " + column_dropdown_features[column_selected]
     xaxis_title = column_dropdown_name_or_cat[name_or_cat]
-    yaxis_title = column_dropdown_features[column_selected]
+    yaxis_title = column_dropdown_features[column_selected] + " for All Locations"
 
     fig = go.Figure(
         data=go.Bar(
@@ -452,6 +462,7 @@ def update_graph_bottom(name_or_cat, column_selected, poi_slider_value):
     fig.update_layout(
         title=title,
         title_x=0.5,
+        height = 900,
         xaxis_title=xaxis_title,
         yaxis_title=yaxis_title,
         yaxis=dict(
@@ -468,6 +479,8 @@ def update_graph_bottom(name_or_cat, column_selected, poi_slider_value):
         ),
             xaxis=dict(
                 tickfont=dict(size=10),
+                title_standoff=50,
+                tickangle=25,
             ),
         margin=dict(l=50, r=50, b=100, t=100, pad=4),
         paper_bgcolor="White",
@@ -551,7 +564,7 @@ def update_poi_table2(n_clicks, selected_features, selected_zip, k):
 
 app.layout = html.Div([
     dcc.Tabs(id='tabs', value='tab-1', children=[
-        dcc.Tab(label='Zipcode HeatMap', value='tab-1', children=[
+        dcc.Tab(label='Atlanta Metro Region Heat Map', value='tab-1', children=[
             html.Div([
                 html.Div([
                     html.Label('Select a Zip Code Feature:'),
@@ -579,7 +592,7 @@ app.layout = html.Div([
                 )
             ])
         ]),
-        dcc.Tab(label='Points of Interest', value='tab-2', children=[
+        dcc.Tab(label='Points of Interest Demographics', value='tab-2', children=[
             html.Div([
                 dbc.Row([
                     dbc.Col([
@@ -595,10 +608,10 @@ app.layout = html.Div([
                             html.Label('Filter by Minimum Amount of POI Locations in Entire Region:'),
                             dcc.Slider(
                                 id='poi-slider',
-                                min=50,
+                                min=10,
                                 max=400,
-                                step=50,
-                                value=50,
+                                step=10,
+                                value=10,
                                 marks={i: str(i) for i in range(50, 401, 50)},
                                 tooltip={"placement": "bottom", "always_visible": True},
                                 className='p-0'
@@ -619,14 +632,14 @@ app.layout = html.Div([
             html.Div(
                 id='poi-graph-container',
                 children=[
-                    dcc.Graph(id='top-graphic', style={'width': '50%', 'height': '700px'}),
-                    dcc.Graph(id='bottom-graphic', style={'width': '50%', 'height': '700px'})
+                    dcc.Graph(id='top-graphic', style={'width': '48%', 'height': '1000px'}),
+                    dcc.Graph(id='bottom-graphic', style={'width': '48%', 'height': '1000px'})
                 ],
                 style={'display': 'flex', 'justify-content': 'space-between'}
             ),
         ]),
 
-        dcc.Tab(label='KNN', value='tab-3', children=[
+        dcc.Tab(label='Recommendations', value='tab-3', children=[
             html.Div([
                 dbc.Row([
                     dbc.Col(zip_dropdown, width=6),
