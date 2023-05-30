@@ -113,17 +113,17 @@ def sim_zip(zipcode, df, columns, POI_df, k=6, mode=1):
                     or if the mode is not 1, 2, 3, or 4.
     '''
     # Check if the zipcode is a number
-    if not isinstance(zipcode, int):
-        raise ValueError('The zipcode value must be an integer.')
-
-    # Check if 'zipcode' is the first column in df
-    if df.columns[0] != 'zipcode':
-        raise ValueError("The 'zipcode' column must be the first column in the dataframe.")
-
-    # Check if mode is valid
-    valid_modes = [1, 2, 3, 4]
-    if mode not in valid_modes:
-        raise ValueError(f"Invalid mode value. Valid modes are: {valid_modes}")
+    # if not isinstance(zipcode, int):
+    #     raise ValueError('The zipcode value must be an integer.')
+    #
+    # # Check if 'zipcode' is the first column in df
+    # if df.columns[0] != 'zipcode':
+    #     raise ValueError("The 'zipcode' column must be the first column in the dataframe.")
+    #
+    # # Check if mode is valid
+    # valid_modes = [1, 2, 3, 4]
+    # if mode not in valid_modes:
+    #     raise ValueError(f"Invalid mode value. Valid modes are: {valid_modes}")
 
     # Standardize Values
     column_to_exclude = 'zipcode'  # I don't want to standardize zipcode
@@ -156,13 +156,32 @@ def sim_zip(zipcode, df, columns, POI_df, k=6, mode=1):
     my_sim_zips = df[df['zipcode'].isin(similar_zip_codes)]
 
 
+    # if mode == 1:
+    #     filtered_sim_zips = my_sim_zips[my_sim_zips.columns[:41]]  # filtering out poi column
+    #     selected_columns = filtered_sim_zips.columns.intersection(columns)
+    #     remaining_columns = filtered_sim_zips.columns.difference(columns)
+    #     reordered_columns = ['zipcode'] + list(selected_columns) + list(
+    #         remaining_columns.difference(['zipcode']))  # reording the columns with 'zipcode' followed by selected
+    #     return filtered_sim_zips[reordered_columns]
     if mode == 1:
         filtered_sim_zips = my_sim_zips[my_sim_zips.columns[:41]]  # filtering out poi column
         selected_columns = filtered_sim_zips.columns.intersection(columns)
         remaining_columns = filtered_sim_zips.columns.difference(columns)
         reordered_columns = ['zipcode'] + list(selected_columns) + list(
             remaining_columns.difference(['zipcode']))  # reording the columns with 'zipcode' followed by selected
-        return filtered_sim_zips[reordered_columns]
+        final_df = filtered_sim_zips[reordered_columns].copy()
+
+        # Move the row with the selected zip code to the top
+        final_df['selected_zip'] = (final_df['zipcode'] == zipcode)
+        final_df = final_df.sort_values('selected_zip', ascending=False).drop(columns='selected_zip')
+        return final_df
+
+        # Move the row with the selected zip code to the top
+        final_df['selected_zip'] = (final_df['zipcode'] == zipcode)
+        final_df = final_df.sort_values('selected_zip', ascending=False).drop(columns='selected_zip')
+        return final_df
+
+
     elif mode == 2:
         return [zipcode] + list(my_sim_zips['zipcode'])
     elif mode == 3:
