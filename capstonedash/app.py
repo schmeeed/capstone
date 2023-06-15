@@ -245,7 +245,7 @@ knn_table = dash_table.DataTable(
     State('checkboxes1', 'value'),
     State('knn-slider', 'value')
 )
-def update_table(selected_zip, selected_features, k):
+def update_table(n_clicks, selected_zip, selected_features, k):
     # if selected_features is empty, set it to a default list of columns
     if not selected_features:
         selected_features = ['median_homeowner_value']
