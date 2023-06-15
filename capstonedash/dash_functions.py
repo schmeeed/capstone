@@ -113,17 +113,17 @@ def sim_zip(zipcode, df, columns, POI_df, k=6, mode=1):
                     or if the mode is not 1, 2, 3, or 4.
     '''
     # Check if the zipcode is a number
-    # if not isinstance(zipcode, int):
-    #     raise ValueError('The zipcode value must be an integer.')
-    #
-    # # Check if 'zipcode' is the first column in df
-    # if df.columns[0] != 'zipcode':
-    #     raise ValueError("The 'zipcode' column must be the first column in the dataframe.")
-    #
-    # # Check if mode is valid
-    # valid_modes = [1, 2, 3, 4]
-    # if mode not in valid_modes:
-    #     raise ValueError(f"Invalid mode value. Valid modes are: {valid_modes}")
+    if not isinstance(zipcode, int):
+        raise ValueError('The zipcode value must be an integer.')
+
+    # Check if 'zipcode' is the first column in df
+    if df.columns[0] != 'zipcode':
+        raise ValueError("The 'zipcode' column must be the first column in the dataframe.")
+
+    # Check if mode is valid
+    valid_modes = [1, 2, 3, 4]
+    if mode not in valid_modes:
+        raise ValueError(f"Invalid mode value. Valid modes are: {valid_modes}")
 
     # Standardize Values
     column_to_exclude = 'zipcode'  # I don't want to standardize zipcode
