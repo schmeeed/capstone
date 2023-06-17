@@ -1,6 +1,8 @@
 # Links
 [Presentation Video](https://www.youtube.com/live/pXDmhXNgKR8?feature=share&t=3044)
+
 [App](http://atlanta.us-east-1.elasticbeanstalk.com/)
+
 [Blog Post](https://nycdatascience.com/blog/student-works/demographic-based-real-estate-investing/)
 
 # Introduction
@@ -8,7 +10,9 @@ Organizations are constantly seeking new ways of leveraging data to guide strate
 
 # Data
 [Census Data](https://data.census.gov/)
+
 [Home Mortgage Disclosure Act Data (HMDA)](https://www.consumerfinance.gov/data-research/hmda/historic-data/)
+
 [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview)
 
 # Our Approach
